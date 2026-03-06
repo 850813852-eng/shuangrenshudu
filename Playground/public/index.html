@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>数独 PK</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="hero">
+        <p class="eyebrow">双人手机网页对战</p>
+        <h1>数独 PK</h1>
+        <p class="subhead">创建房间后，把邀请码发给对手。两人做同一道题，先正确提交的人获胜。</p>
+      </section>
+
+      <section class="card" id="lobby-card">
+        <div class="form-grid">
+          <label>
+            <span>你的昵称</span>
+            <input id="player-name" maxlength="20" placeholder="例如：小王" />
+          </label>
+          <button id="create-room">创建房间</button>
+        </div>
+        <div class="join-row">
+          <input id="room-code-input" maxlength="6" placeholder="输入邀请码" />
+          <button id="join-room">加入房间</button>
+        </div>
+      </section>
+
+      <section class="card hidden" id="game-card">
+        <div class="topbar">
+          <div>
+            <p class="label">房间邀请码</p>
+            <div class="room-code-wrap">
+              <strong id="room-code"></strong>
+              <button id="copy-room-code" class="ghost">复制</button>
+            </div>
+          </div>
+          <div class="status-pill" id="match-status">等待开始</div>
+        </div>
+
+        <div class="scoreboard">
+          <article class="player-box">
+            <p class="label">我方</p>
+            <strong id="self-name">-</strong>
+            <span id="self-time">00:00</span>
+            <span id="self-state">等待中</span>
+          </article>
+          <article class="player-box">
+            <p class="label">对手</p>
+            <strong id="opponent-name">待加入</strong>
+            <span id="opponent-time">00:00</span>
+            <span id="opponent-state">未加入</span>
+          </article>
+        </div>
+
+        <div class="message" id="message-box"></div>
+
+        <div class="board-wrap" id="board"></div>
+
+        <div class="actions">
+          <button id="submit-board">提交答案</button>
+          <button id="reset-board" class="ghost">恢复到初始题面</button>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
