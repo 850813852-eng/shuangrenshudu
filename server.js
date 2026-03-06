@@ -2,7 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
-const { createRoomHandler, joinRoomHandler, stateHandler, submitHandler } = require("./lib/api");
+const { createRoomHandler, joinRoomHandler, moveHandler, stateHandler, submitHandler } = require("./lib/api");
 const { parseBody, sendJson } = require("./lib/http");
 
 const PORT = process.env.PORT || 3000;
@@ -53,6 +53,13 @@ async function handleApi(req, res, pathname, searchParams) {
 
     if (req.method === "GET" && pathname === "/api/state") {
       const result = await stateHandler(searchParams.get("roomCode"), searchParams.get("playerId"));
+      sendJson(res, result.statusCode, result.data);
+      return;
+    }
+
+    if (req.method === "POST" && pathname === "/api/move") {
+      const body = await parseBody(req);
+      const result = await moveHandler(body.roomCode, body.playerId, body.row, body.col, body.value);
       sendJson(res, result.statusCode, result.data);
       return;
     }

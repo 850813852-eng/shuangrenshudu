@@ -29,39 +29,49 @@
       </section>
 
       <section class="card hidden" id="game-card">
-        <div class="topbar">
-          <div>
-            <p class="label">房间邀请码</p>
-            <div class="room-code-wrap">
-              <strong id="room-code"></strong>
-              <button id="copy-room-code" class="ghost">复制</button>
-            </div>
+        <div class="game-hud">
+          <div class="hud-side">
+            <span class="difficulty-tag">PK</span>
           </div>
-          <div class="status-pill" id="match-status">等待开始</div>
+          <div class="hud-center">
+            <span class="hud-label">错误次数：</span>
+            <div class="hearts" id="self-hearts"></div>
+          </div>
+          <div class="hud-side hud-side-right">
+            <span id="self-time">00:00</span>
+          </div>
         </div>
 
-        <div class="scoreboard">
-          <article class="player-box">
-            <p class="label">我方</p>
-            <strong id="self-name">-</strong>
-            <span id="self-time">00:00</span>
-            <span id="self-state">等待中</span>
-          </article>
-          <article class="player-box">
-            <p class="label">对手</p>
-            <strong id="opponent-name">待加入</strong>
+        <div class="duel-bar">
+          <div class="duel-line">
+            <span class="label">房间</span>
+            <strong id="room-code"></strong>
+            <button id="copy-room-code" class="ghost compact">复制</button>
+          </div>
+          <div class="duel-line">
+            <span><strong id="self-name">我方</strong> <span id="self-state">等待中</span></span>
+            <span id="match-status">等待开始</span>
+            <span><strong id="opponent-name">待加入</strong> <span id="opponent-state">未加入</span></span>
+          </div>
+          <div class="duel-line duel-meta">
+            <span id="self-mistakes">剩余容错 3 次</span>
+            <span id="opponent-mistakes">对手剩余容错 3 次</span>
             <span id="opponent-time">00:00</span>
-            <span id="opponent-state">未加入</span>
-          </article>
+          </div>
         </div>
 
         <div class="message" id="message-box"></div>
 
         <div class="board-wrap" id="board"></div>
 
-        <div class="actions">
-          <button id="submit-board">提交答案</button>
-          <button id="reset-board" class="ghost">恢复到初始题面</button>
+        <div class="pad-wrap">
+          <div class="pad-actions">
+            <button id="undo-move" class="ghost hidden">撤回错误输入</button>
+            <button id="clear-cell" class="ghost">清空当前格</button>
+            <button id="reset-board" class="ghost">重置棋盘</button>
+            <button id="submit-board">提交答案</button>
+          </div>
+          <div class="number-pad" id="number-pad"></div>
         </div>
       </section>
     </main>
