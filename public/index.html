@@ -9,29 +9,54 @@
   <body>
     <main class="app">
       <section class="hero">
-        <p class="eyebrow">双人手机网页对战</p>
+        <p class="eyebrow">手机网页数独</p>
         <h1>数独 PK</h1>
-        <p class="subhead">创建房间后，把邀请码发给对手。两人做同一道题，先正确提交的人获胜。</p>
+        <p class="subhead">支持单人挑战和多人对战。单人直接开局，多人通过邀请码进入同一道题。</p>
       </section>
 
       <section class="card" id="lobby-card">
-        <div class="form-grid">
+        <div class="mode-picker">
+          <button class="mode-option active" data-mode="single" type="button">单人挑战</button>
+          <button class="mode-option" data-mode="multi" type="button">多人挑战</button>
+        </div>
+
+        <div class="form-grid single-line">
           <label>
             <span>你的昵称</span>
             <input id="player-name" maxlength="20" placeholder="例如：小王" />
           </label>
-          <button id="create-room">创建房间</button>
         </div>
-        <div class="join-row">
-          <input id="room-code-input" maxlength="6" placeholder="输入邀请码" />
-          <button id="join-room">加入房间</button>
+
+        <div class="difficulty-picker">
+          <button class="difficulty-option active" data-difficulty="easy" type="button">容易</button>
+          <button class="difficulty-option" data-difficulty="medium" type="button">中度</button>
+          <button class="difficulty-option" data-difficulty="hard" type="button">困难</button>
+        </div>
+
+        <div id="single-actions">
+          <button id="start-single">开始单人挑战</button>
+        </div>
+
+        <div id="multi-actions" class="hidden">
+          <div class="join-row">
+            <button id="create-room">创建房间</button>
+            <input id="room-code-input" maxlength="6" placeholder="输入邀请码" />
+            <button id="join-room">加入房间</button>
+          </div>
         </div>
       </section>
 
       <section class="card hidden" id="game-card">
+        <div class="room-meta">
+          <span>房间 <strong id="room-code"></strong></span>
+          <span><strong id="self-name">我方</strong> <span id="self-state">等待中</span></span>
+          <span id="opponent-summary"><strong id="opponent-name">待加入</strong> <span id="opponent-state">未加入</span></span>
+          <button id="copy-room-code" class="ghost compact">复制邀请码</button>
+        </div>
+
         <div class="game-hud">
           <div class="hud-side">
-            <span class="difficulty-tag">PK</span>
+            <span class="difficulty-tag" id="difficulty-tag">容易</span>
           </div>
           <div class="hud-center">
             <span class="hud-label">错误次数：</span>
@@ -42,36 +67,25 @@
           </div>
         </div>
 
-        <div class="duel-bar">
-          <div class="duel-line">
-            <span class="label">房间</span>
-            <strong id="room-code"></strong>
-            <button id="copy-room-code" class="ghost compact">复制</button>
-          </div>
-          <div class="duel-line">
-            <span><strong id="self-name">我方</strong> <span id="self-state">等待中</span></span>
-            <span id="match-status">等待开始</span>
-            <span><strong id="opponent-name">待加入</strong> <span id="opponent-state">未加入</span></span>
-          </div>
-          <div class="duel-line duel-meta">
-            <span id="self-mistakes">剩余容错 3 次</span>
-            <span id="opponent-mistakes">对手剩余容错 3 次</span>
-            <span id="opponent-time">00:00</span>
-          </div>
-        </div>
-
         <div class="message" id="message-box"></div>
 
         <div class="board-wrap" id="board"></div>
 
         <div class="pad-wrap">
+          <div class="number-pad" id="number-pad"></div>
           <div class="pad-actions">
-            <button id="undo-move" class="ghost hidden">撤回错误输入</button>
-            <button id="clear-cell" class="ghost">清空当前格</button>
-            <button id="reset-board" class="ghost">重置棋盘</button>
+            <button id="undo-move" class="ghost hidden">撤回</button>
+            <button id="reset-board" class="ghost">重置</button>
+          </div>
+          <div class="room-status-row">
+            <span id="match-status">等待开始</span>
+            <span id="self-mistakes">剩余容错 3 次</span>
+            <span id="opponent-mistakes">对手剩余容错 3 次</span>
+            <span id="opponent-time">00:00</span>
+          </div>
+          <div class="submit-row">
             <button id="submit-board">提交答案</button>
           </div>
-          <div class="number-pad" id="number-pad"></div>
         </div>
       </section>
     </main>

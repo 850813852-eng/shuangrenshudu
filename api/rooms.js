@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
 
   try {
     const body = await parseBody(req);
-    const result = await createRoomHandler(body.name);
+    const result = await createRoomHandler(body.name, body.difficulty, body.mode);
     sendJson(res, result.statusCode, result.data);
   } catch (error) {
     sendJson(res, 500, { error: error.message || "Server error" });

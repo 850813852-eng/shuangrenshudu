@@ -1,4 +1,6 @@
 const state = {
+  mode: "single",
+  difficulty: "easy",
   roomCode: "",
   playerId: "",
   puzzle: "",
@@ -6,7 +8,8 @@ const state = {
   pollTimer: null,
   selectedIndex: -1,
   invalidCells: new Set(),
-  lastRejectedMove: null
+  lastRejectedMove: null,
+  resultAnnounced: false
 };
 
 const elements = {
@@ -14,6 +17,14 @@ const elements = {
   gameCard: document.querySelector("#game-card"),
   playerName: document.querySelector("#player-name"),
   roomCodeInput: document.querySelector("#room-code-input"),
+  modeOptions: Array.from(document.querySelectorAll(".mode-option")),
+  difficultyOptions: Array.from(document.querySelectorAll(".difficulty-option")),
+  singleActions: document.querySelector("#single-actions"),
+  multiActions: document.querySelector("#multi-actions"),
+  startSingle: document.querySelector("#start-single"),
+  createRoom: document.querySelector("#create-room"),
+  joinRoom: document.querySelector("#join-room"),
+  difficultyTag: document.querySelector("#difficulty-tag"),
   roomCode: document.querySelector("#room-code"),
   copyRoomCode: document.querySelector("#copy-room-code"),
   matchStatus: document.querySelector("#match-status"),
@@ -22,6 +33,7 @@ const elements = {
   selfTime: document.querySelector("#self-time"),
   selfState: document.querySelector("#self-state"),
   selfMistakes: document.querySelector("#self-mistakes"),
+  opponentSummary: document.querySelector("#opponent-summary"),
   opponentName: document.querySelector("#opponent-name"),
   opponentTime: document.querySelector("#opponent-time"),
   opponentState: document.querySelector("#opponent-state"),
@@ -29,12 +41,9 @@ const elements = {
   board: document.querySelector("#board"),
   numberPad: document.querySelector("#number-pad"),
   messageBox: document.querySelector("#message-box"),
-  createRoom: document.querySelector("#create-room"),
-  joinRoom: document.querySelector("#join-room"),
   submitBoard: document.querySelector("#submit-board"),
   resetBoard: document.querySelector("#reset-board"),
-  undoMove: document.querySelector("#undo-move"),
-  clearCell: document.querySelector("#clear-cell")
+  undoMove: document.querySelector("#undo-move")
 };
 
 function showMessage(message) {
@@ -50,6 +59,19 @@ function formatMs(ms) {
 
 function normalizeName() {
   return elements.playerName.value.trim() || "匿名玩家";
+}
+
+function syncModeView() {
+  elements.singleActions.classList.toggle("hidden", state.mode !== "single");
+  elements.multiActions.classList.toggle("hidden", state.mode !== "multi");
+}
+
+function resetLocalGameState() {
+  state.board = "";
+  state.selectedIndex = -1;
+  state.invalidCells.clear();
+  state.lastRejectedMove = null;
+  state.resultAnnounced = false;
 }
 
 function getCellValue(index) {
@@ -88,18 +110,12 @@ function renderHearts(mistakesLeft) {
 }
 
 function clearInvalidCell(index) {
-  if (index < 0) {
-    return;
+  if (index >= 0) {
+    state.invalidCells.delete(index);
   }
-  state.invalidCells.delete(index);
 }
 
 function selectCell(index) {
-  if (state.puzzle[index] !== "0") {
-    state.selectedIndex = index;
-    renderBoard();
-    return;
-  }
   state.selectedIndex = index;
   renderBoard();
 }
@@ -110,34 +126,36 @@ function renderBoard() {
   for (let index = 0; index < 81; index += 1) {
     const row = Math.floor(index / 9);
     const col = index % 9;
-    const input = document.createElement("button");
-    input.type = "button";
-    input.className = "cell";
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "cell";
+
     if ((col + 1) % 3 === 0 && col !== 8) {
-      input.classList.add("block-right");
+      cell.classList.add("block-right");
     }
     if ((row + 1) % 3 === 0 && row !== 8) {
-      input.classList.add("block-bottom");
-    }
-    const original = state.puzzle[index];
-    const current = getCellValue(index);
-    const displayValue = current === "0" ? "" : current;
-    input.textContent = displayValue;
-    if (state.selectedIndex === index) {
-      input.classList.add("selected");
-    }
-    if (activeValue && displayValue === activeValue) {
-      input.classList.add("same-number");
-    }
-    if (state.invalidCells.has(index)) {
-      input.classList.add("invalid");
+      cell.classList.add("block-bottom");
     }
 
-    if (original !== "0") {
-      input.classList.add("fixed");
+    const current = getCellValue(index);
+    const displayValue = current === "0" ? "" : current;
+    cell.textContent = displayValue;
+
+    if (state.selectedIndex === index) {
+      cell.classList.add("selected");
     }
-    input.addEventListener("click", () => selectCell(index));
-    elements.board.appendChild(input);
+    if (activeValue && displayValue === activeValue) {
+      cell.classList.add("same-number");
+    }
+    if (state.invalidCells.has(index)) {
+      cell.classList.add("invalid");
+    }
+    if (state.puzzle[index] !== "0") {
+      cell.classList.add("fixed");
+    }
+
+    cell.addEventListener("click", () => selectCell(index));
+    elements.board.appendChild(cell);
   }
 }
 
@@ -156,16 +174,22 @@ function renderNumberPad() {
 }
 
 function updateRoomView(payload) {
+  state.mode = payload.mode || "single";
   state.roomCode = payload.roomCode;
   state.puzzle = payload.puzzle;
   if (!state.board) {
     state.board = payload.puzzle;
-    renderBoard();
   }
 
   elements.lobbyCard.classList.add("hidden");
   elements.gameCard.classList.remove("hidden");
+  elements.difficultyTag.textContent = payload.difficultyLabel || "容易";
   elements.roomCode.textContent = payload.roomCode;
+  elements.copyRoomCode.classList.toggle("hidden", state.mode === "single");
+  elements.opponentSummary.classList.toggle("hidden", state.mode === "single");
+  elements.opponentMistakes.classList.toggle("hidden", state.mode === "single");
+  elements.opponentTime.classList.toggle("hidden", state.mode === "single");
+
   elements.selfName.textContent = payload.player?.name || "-";
   elements.selfTime.textContent = formatMs(payload.player?.elapsedMs || 0);
   elements.selfState.textContent = payload.player?.failed
@@ -184,22 +208,26 @@ function updateRoomView(payload) {
     ? payload.opponent.failed
       ? "已判负"
       : payload.opponent.completed
-      ? "已完成"
-      : payload.opponent.joined
-        ? "作答中"
-        : "等待中"
+        ? "已完成"
+        : payload.opponent.joined
+          ? "作答中"
+          : "等待中"
     : "未加入";
   elements.opponentMistakes.textContent = payload.opponent
     ? `对手剩余容错 ${payload.opponent.mistakesLeft} 次`
     : "对手剩余容错 3 次";
 
-  if (payload.status === "waiting") {
+  if (state.mode === "single") {
+    elements.matchStatus.textContent = payload.status === "finished" ? "已结束" : "单人挑战";
+  } else if (payload.status === "waiting") {
     elements.matchStatus.textContent = "等待对手加入";
   } else if (payload.status === "playing") {
     elements.matchStatus.textContent = "对战进行中";
   } else if (payload.status === "finished") {
     elements.matchStatus.textContent = payload.winnerId === state.playerId ? "你赢了" : "对手获胜";
   }
+
+  renderBoard();
 }
 
 async function requestJson(url, options) {
@@ -209,23 +237,26 @@ async function requestJson(url, options) {
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.error || "请求失败");
+    const error = new Error(data.error || "请求失败");
+    error.state = data.state;
+    throw error;
   }
   return data;
 }
 
-async function createRoom() {
+async function createRoom(mode) {
   const data = await requestJson("/api/rooms", {
     method: "POST",
-    body: JSON.stringify({ name: normalizeName() })
+    body: JSON.stringify({
+      name: normalizeName(),
+      difficulty: state.difficulty,
+      mode
+    })
   });
   state.playerId = data.playerId;
-  state.board = "";
-  state.selectedIndex = -1;
-  state.invalidCells.clear();
-  state.lastRejectedMove = null;
+  resetLocalGameState();
   updateRoomView(data.state);
-  showMessage("房间已创建，把邀请码发给对手。");
+  showMessage(mode === "single" ? "单人挑战已开始。" : "房间已创建，把邀请码发给对手。");
   syncUndoButton();
   startPolling();
 }
@@ -244,10 +275,7 @@ async function joinRoom() {
     })
   });
   state.playerId = data.playerId;
-  state.board = "";
-  state.selectedIndex = -1;
-  state.invalidCells.clear();
-  state.lastRejectedMove = null;
+  resetLocalGameState();
   updateRoomView(data.state);
   showMessage("已加入房间，比赛开始。");
   syncUndoButton();
@@ -261,10 +289,12 @@ async function refreshState() {
   try {
     const data = await requestJson(`/api/state?roomCode=${state.roomCode}&playerId=${state.playerId}`);
     updateRoomView(data);
-    if (data.status === "finished") {
-      showMessage(data.winnerId === state.playerId ? "你率先完成，获胜。" : "对手先完成，比赛结束。");
+    if (data.status === "finished" && !state.resultAnnounced) {
+      state.resultAnnounced = true;
       if (data.player?.failed) {
         alert("你已用完 3 次错误机会，判定失败。");
+      } else if (state.mode === "single") {
+        alert("单人挑战完成。");
       } else if (data.winnerId === state.playerId) {
         alert("你获胜了。");
       } else {
@@ -302,8 +332,8 @@ async function submitBoard() {
       })
     });
     updateRoomView(data.state);
-    showMessage(data.message);
-    alert(data.state.winnerId === state.playerId ? "答案正确，你获胜了。" : "答案正确，对手获胜。");
+    state.resultAnnounced = true;
+    alert(state.mode === "single" ? "答案正确，单人挑战完成。" : "答案正确，你获胜了。");
     stopPolling();
   } catch (error) {
     showMessage(error.message);
@@ -316,23 +346,9 @@ function resetBoard() {
   state.selectedIndex = -1;
   state.invalidCells.clear();
   state.lastRejectedMove = null;
-  renderBoard();
-  showMessage("已恢复到初始题面。");
   syncUndoButton();
-}
-
-function clearSelectedCell() {
-  if (state.selectedIndex < 0 || state.puzzle[state.selectedIndex] !== "0") {
-    showMessage("请先选中一个可填写的空格。");
-    return;
-  }
-  setCellValue(state.selectedIndex, "0");
-  clearInvalidCell(state.selectedIndex);
-  if (state.lastRejectedMove?.index === state.selectedIndex) {
-    state.lastRejectedMove = null;
-    syncUndoButton();
-  }
   renderBoard();
+  showMessage("已重置到初始题面。");
 }
 
 function undoRejectedMove() {
@@ -361,6 +377,7 @@ async function playMove(value) {
   const row = Math.floor(state.selectedIndex / 9);
   const col = state.selectedIndex % 9;
   const previousValue = getCellValue(state.selectedIndex);
+
   setCellValue(state.selectedIndex, String(value));
   renderBoard();
 
@@ -380,7 +397,6 @@ async function playMove(value) {
     syncUndoButton();
     updateRoomView(data.state);
     showMessage("填写正确。");
-    renderBoard();
   } catch (error) {
     state.invalidCells.add(state.selectedIndex);
     state.lastRejectedMove = {
@@ -388,7 +404,9 @@ async function playMove(value) {
       previousValue
     };
     syncUndoButton();
-    await refreshState();
+    if (error.state) {
+      updateRoomView(error.state);
+    }
     renderBoard();
     showMessage(error.message);
     alert(error.message);
@@ -396,6 +414,9 @@ async function playMove(value) {
 }
 
 async function copyRoomCode() {
+  if (state.mode === "single") {
+    return;
+  }
   try {
     await navigator.clipboard.writeText(state.roomCode);
     showMessage("邀请码已复制。");
@@ -404,18 +425,34 @@ async function copyRoomCode() {
   }
 }
 
+elements.startSingle.addEventListener("click", () => {
+  createRoom("single").catch((error) => showMessage(error.message));
+});
 elements.createRoom.addEventListener("click", () => {
-  createRoom().catch((error) => showMessage(error.message));
+  createRoom("multi").catch((error) => showMessage(error.message));
 });
 elements.joinRoom.addEventListener("click", () => {
   joinRoom().catch((error) => showMessage(error.message));
 });
-elements.submitBoard.addEventListener("click", () => {
-  submitBoard();
-});
+elements.submitBoard.addEventListener("click", submitBoard);
 elements.resetBoard.addEventListener("click", resetBoard);
 elements.copyRoomCode.addEventListener("click", copyRoomCode);
 elements.undoMove.addEventListener("click", undoRejectedMove);
-elements.clearCell.addEventListener("click", clearSelectedCell);
 
+elements.difficultyOptions.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.difficulty = button.dataset.difficulty;
+    elements.difficultyOptions.forEach((item) => item.classList.toggle("active", item === button));
+  });
+});
+
+elements.modeOptions.forEach((button) => {
+  button.addEventListener("click", () => {
+    state.mode = button.dataset.mode;
+    elements.modeOptions.forEach((item) => item.classList.toggle("active", item === button));
+    syncModeView();
+  });
+});
+
+syncModeView();
 renderNumberPad();

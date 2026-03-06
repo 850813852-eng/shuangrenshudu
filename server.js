@@ -39,7 +39,7 @@ async function handleApi(req, res, pathname, searchParams) {
   try {
     if (req.method === "POST" && pathname === "/api/rooms") {
       const body = await parseBody(req);
-      const result = await createRoomHandler(body.name);
+      const result = await createRoomHandler(body.name, body.difficulty, body.mode);
       sendJson(res, result.statusCode, result.data);
       return;
     }
